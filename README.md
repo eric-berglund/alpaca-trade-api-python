@@ -36,6 +36,8 @@ account = api.get_account()
 api.list_positions()
 ```
 
+please note the exact format of the dates
+
 ## Example Scripts
 
 Please see the `examples/` folder for some example scripts that make use of this API
@@ -68,8 +70,9 @@ The Alpaca SDK will check the environment for a number of variables that can be 
 | APCA_RETRY_MAX=3                 | 3                                                                                      | The number of subsequent API calls to retry on timeouts                                                                |
 | APCA_RETRY_WAIT=3                | 3                                                                                      | seconds to wait between each retry attempt                                                                             |
 | APCA_RETRY_CODES=429,504         | 429,504                                                                                | comma-separated HTTP status code for which retry is attempted                                                          |
-| POLYGON_WS_URL                   | wss://socket.polygon.io/stocks                                                  | Endpoint for streaming polygon data.  You likely don't need to change this unless you want to proxy it for example     |
+| POLYGON_WS_URL                   | wss://socket.polygon.io/stocks                                                         | Endpoint for streaming polygon data.  You likely don't need to change this unless you want to proxy it for example     |
 | POLYGON_KEY_ID                   |                                                                                        | Your Polygon key, if it's not the same as your Alpaca API key. Most users will not need to set this to access Polygon. |
+| DATA_PROXY_WS                    |                                                                                        | When using the alpaca-proxy-agent you need to set this environment variable as described ![here](https://github.com/shlomikushchi/alpaca-proxy-agent) |
 
 ## REST
 
@@ -130,6 +133,7 @@ You can access the following information through this object.
 
 ### Rest Examples
 
+##### Using `submit_order()`
 Below is an example of submitting a bracket order.
 ```py
 api.submit_order(
@@ -147,6 +151,21 @@ api.submit_order(
         limit_price='295.5',
     )
 )
+```
+
+##### Using `get_barset()`
+```python 
+import pandas as pd
+NY = 'America/New_York'
+start=pd.Timestamp('2020-08-01', tz=NY).isoformat()
+end=pd.Timestamp('2020-08-30', tz=NY).isoformat()
+print(api.get_barset(['AAPL', 'GOOG'], 'day', start=start, end=end).df)
+
+# Minute data example
+start=pd.Timestamp('2020-08-28 9:30', tz=NY).isoformat()
+end=pd.Timestamp('2020-08-28 16:00', tz=NY).isoformat()
+print(api.get_barset(['AAPL', 'GOOG'], 'minute', start=start, end=end).df)
+
 ```
 
 ---
@@ -313,6 +332,18 @@ It is initialized through the alpaca `REST` object.
 | earnings(symbol)                      |  Returns an `Earnings` entity if `symbol` is string, or a dict[symbol -> `Earnings`] if `symbol` is a list of string.|
 | financials(symbol)                    | Returns an `Financials` entity if `symbol` is string, or a dict[symbol -> `Financials`] if `symbol` is a list of string. |
 | news(symbol)                          |  Returns a `NewsList` entity for the symbol.|
+
+
+## Running Multiple Strategies
+There's a way to execute more than one algorithm at once.<br>
+The websocket connection is limited to 1 connection per account. <br>
+For that exact purpose this ![project](https://github.com/shlomikushchi/alpaca-proxy-agent)  was created<br>
+The steps to execute this are:
+* Run the Alpaca Proxy Agent as described in the project's README
+* Define this env variable: `DATA_PROXY_WS` to be the address of the proxy agent. (e.g: `DATA_PROXY_WS=ws://127.0.0.1:8765`)
+* If you are using the Alpaca data stream, make sure you you initiate the StreamConn object with the container's url, like so: data_url='http://127.0.0.1:8765'
+* execute your algorithm. it will connect to the servers through the proxy agent allowing you to execute multiple strategies
+
 
 ## Support and Contribution
 
